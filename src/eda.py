@@ -8,8 +8,15 @@ def load_unified(path="data/processed/unified.jsonl"):
         return [json.loads(line) for line in f]
 
 def run_eda(records):
-    
-    durations = [float(r["duration"]) for r in records if r.get("duration") is not None]
+    durations = []
+    for r in records:
+        d = r.get("duration")
+        if d is not None:
+            try:
+                durations.append(float(d))
+            except (ValueError, TypeError):
+                pass
+
     languages = Counter(r.get("language", "unknown") for r in records)
     tiers = Counter(r["tier"] for r in records)
 
