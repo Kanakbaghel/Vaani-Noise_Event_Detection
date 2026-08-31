@@ -84,32 +84,27 @@ def parse_bronze_tags(transcript):
 
 
 def unify_sample(sample, idx):
-    
-    raw_status = (sample.get("annotationQuality") or "").lower()
-    
-    if "verified_timestamps" in raw_status or sample.get("verified_timestamps") is not None:
-        tier = "gold"
-    elif "unverified_timestamps" in raw_status or sample.get("unverified_timestamps") is not None:
-        tier = "silver"
-    elif "no_timestamps" in raw_status or sample.get("no_timestamps") is not None:
+    quality = (sample.get("annotationQuality") or "").lower()
+
+    if "no_timestamps" in quality:
         tier = "bronze"
+    elif "unverified" in quality:
+        tier = "silver"
+    elif "verified" in quality:
+        tier = "gold"
     else:
-       
-        if sample.get("NoiseSubCategoryTimeStamp"):
-            tier = "silver"
-        else:
-            tier = "bronze"
+        tier = "unknown"
 
     record = {
         "clip_id": f"train_{idx:06d}",
-        "tier": tier,  # gold / silver / bronze
+        "tier": tier,
         "language": sample.get("language"),
         "state": sample.get("state"),
         "district": sample.get("district"),
         "duration": sample.get("duration"),
         "transcript": sample.get("transcript"),
-        "events": [],       
-        "noise_tags": [],   
+        "events": [],
+        "noise_tags": [],
     }
 
     if tier in ("gold", "silver"):
