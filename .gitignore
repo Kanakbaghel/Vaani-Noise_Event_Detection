@@ -3,8 +3,7 @@
 *.token
 
 # data (too large / private)
-data/raw/
-data/processed/
+
 *.wav
 *.mp3
 
