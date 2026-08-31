@@ -2,8 +2,6 @@
   <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=180&section=header&text=Datathon@IndoML 2026&fontSize=42&fontColor=fff&animation=twinkling&fontAlignY=32&desc=Track 1: Noise Event Detection%20%7C%20Track 2: Noise Event Removal&descAlignY=55&descSize=16"/>
 </div>
 
-<div align="center">
-
 Team **Deadlock**'s submission for **Datathon@IndoML 2026 — Track 1: Noise Event Detection**.
 
 We're building a system to detect real-world noise events (vehicle horns, dogs barking, doorbells, kitchen appliances, etc.) in Indic speech recordings, with precise onset/offset timestamps — using the [Vaani corpus](https://arxiv.org/abs/2603.28714), a large-scale, multi-language Indian speech dataset.
