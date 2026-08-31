@@ -1,0 +1,19 @@
+# secrets
+.env
+*.token
+
+# data (too large / private)
+data/raw/
+data/processed/
+*.wav
+*.mp3
+
+# python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+venv/
+.venv/
+
+# submissions (keep only final ones you want tracked, or track all — your call)
+submissions/*.zip
