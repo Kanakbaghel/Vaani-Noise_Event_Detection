@@ -1,6 +1,6 @@
-<div align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=180&section=header&text=Datathon@IndoML 2026&fontSize=42&fontColor=fff&animation=twinkling&fontAlignY=32&desc=Track 1: Noise Event Detection%20%7C%20Track 2: Noise Event Removal&descAlignY=55&descSize=16"/>
-</div>
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=0,2,10,24,30&height=220&section=header&text=Datathlon@IndoML%202026&fontSize=48&fontColor=ffffff&animation=twinkling&fontAlignY=38&desc=Track%201:%20Noise%20Event%20Detection%20|%20Track%202:%20Noise%20Event%20Removal&descSize=16&descAlignY=58&descAlign=50" width="100%" />
+</p>
 
 Team **Deadlock**'s submission for **Datathon@IndoML 2026 — Track 1: Noise Event Detection**.
 
