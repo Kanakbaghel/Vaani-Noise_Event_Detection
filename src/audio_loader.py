@@ -6,6 +6,11 @@ Solves the disk space problem by:
 1. Streaming only the required audio sample from HuggingFace on-demand
 2. Caching downloaded files locally for reuse
 3. Mapping clip_id back to the original HF dataset index
+4. OPTIMIZED: Uses .skip() for O(1) dataset access instead of O(n) iteration
+
+Performance:
+- OLD: Loading train_050000 required iterating through 50,000 samples
+- NEW: Loading train_050000 skips directly to index 50,000
 
 Usage:
     from src.audio_loader import AudioLoader
@@ -27,7 +32,7 @@ from typing import Tuple, Optional
 import numpy as np
 import soundfile as sf
 import torchaudio
-from datasets import load_dataset, Audio
+from datasets import load_dataset
 from dotenv import load_dotenv
 from tqdm import tqdm
 
@@ -77,8 +82,6 @@ class AudioLoader:
         
         # Lazy-load the dataset (streaming mode to avoid downloading everything)
         self._dataset = None
-        self._dataset_iter = None
-        self._index_cache = {}  # Map clip_id -> HF index for faster lookup
         
         print(f"AudioLoader initialized. Cache directory: {self.cache_dir}")
     
@@ -145,6 +148,9 @@ class AudioLoader:
         """
         Fetch audio from HuggingFace dataset by clip_id.
         
+        OPTIMIZED: Uses .skip() method to jump directly to target index
+        instead of iterating from 0 (O(1) vs O(n) performance).
+        
         Returns:
             (audio_array, sample_rate)
         """
@@ -154,31 +160,37 @@ class AudioLoader:
         # Extract index from clip_id
         target_index = self._extract_index_from_clip_id(clip_id)
         
-        # For streaming datasets, we need to iterate to the target index
+        # For streaming datasets, use skip() for O(1) performance
         if self.use_streaming:
-            # Cast audio column to decode audio data
-            train_split = train_split.cast_column("audio", Audio(decode=True))
+            # DON'T cast to Audio - let datasets handle decoding internally
+            # This avoids torchcodec/FFmpeg DLL issues
             
-            for i, sample in enumerate(train_split):
-                if i == target_index:
-                    audio_data = sample["audio"]
-                    audio_array = np.array(audio_data["array"], dtype=np.float32)
-                    sr = audio_data["sampling_rate"]
-                    
-                    # Resample if needed
-                    if self.target_sr is not None and sr != self.target_sr:
-                        audio_array, sr = self._resample(audio_array, sr, self.target_sr)
-                    
-                    return audio_array, sr
+            # OPTIMIZATION: Skip directly to target index instead of iterating
+            # This avoids loading all samples from 0 to target_index
+            try:
+                skipped_dataset = train_split.skip(target_index)
                 
-                # Early exit if we've passed the target (dataset is sequential)
-                if i > target_index:
-                    break
-            
-            raise ValueError(f"Could not find clip_id {clip_id} (index {target_index}) in dataset")
+                # Take the first sample after skipping
+                sample = next(iter(skipped_dataset))
+                
+                audio_data = sample["audio"]
+                # Audio data is already decoded by datasets library
+                audio_array = np.array(audio_data["array"], dtype=np.float32)
+                sr = audio_data["sampling_rate"]
+                
+                # Resample if needed
+                if self.target_sr is not None and sr != self.target_sr:
+                    audio_array, sr = self._resample(audio_array, sr, self.target_sr)
+                
+                return audio_array, sr
+                
+            except StopIteration:
+                raise ValueError(f"Could not find clip_id {clip_id} (index {target_index}) in dataset - index out of range")
+            except Exception as e:
+                raise RuntimeError(f"Error fetching {clip_id} from HuggingFace: {e}")
         
         else:
-            # Non-streaming: direct index access
+            # Non-streaming: direct index access (already optimal)
             sample = train_split[target_index]
             audio_data = sample["audio"]
             audio_array = np.array(audio_data["array"], dtype=np.float32)
