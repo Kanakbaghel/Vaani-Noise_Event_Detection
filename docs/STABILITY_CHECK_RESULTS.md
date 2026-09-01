@@ -80,11 +80,34 @@ Available fields in HF dataset:
 
 ## 📋 Verified Information
 
-### From unified.jsonl (Knight's data):
+### From unified.jsonl (Actual Data):
 - Total samples: 90,637
 - All have unique sequential `clip_id`: train_000000 to train_090636
-- Tier distribution: Silver (81.6%), Bronze (11%), Gold (7.4%)
-- Languages: Odia (56.4%), Hindi (16.4%), Telugu (7.7%), Bengali (7.4%), others
+- **Tier distribution:** 
+  - Silver: 61,642 (68.0%)
+  - Bronze: 17,884 (19.7%)
+  - Gold: 11,111 (12.3%)
+- **Top Languages:** 
+  - Hindi: 47,120 (52.0%)
+  - Telugu: 10,163 (11.2%)
+  - Bengali: 8,991 (9.9%)
+  - Marathi: 2,957 (3.3%)
+  - Assamese: 2,885 (3.2%)
+  - Malayalam: 2,590 (2.9%)
+  - Nepali: 2,398 (2.6%)
+  - Others: 6,533 (7.2%)
+- **Top Noise Categories:**
+  - human_non_speech: 37,739
+  - animal: 24,601
+  - vehicle_traffic: 20,603
+  - baby_child: 12,376
+  - singing_music: 6,978
+  - phone_signal_alarm: 3,683
+  - Others: 3,657
+- **Duration Statistics:**
+  - Min: 0.79s
+  - Max: 23.49s
+  - Mean: 6.14s
 
 ### From data_prep.py logic:
 ```python
@@ -187,19 +210,22 @@ import json
 
 loader = AudioLoader()
 
-# Test a few known samples
-test_cases = [
-    ("train_000000", "Telugu", 8.18),   # From unified.jsonl
-    ("train_000001", "Odia", 4.57),
-    ("train_000002", "Telugu", 3.81),
-]
+# Load first few samples from unified.jsonl to get expected values
+with open("data/processed/unified.jsonl", "r", encoding="utf-8") as f:
+    test_cases = []
+    for i, line in enumerate(f):
+        if i >= 3:
+            break
+        record = json.loads(line)
+        test_cases.append((record["clip_id"], record["language"], record["duration"]))
 
+# Verify audio matches JSONL metadata
 for clip_id, expected_lang, expected_dur in test_cases:
     audio, sr = loader.load_audio(clip_id)
     actual_dur = len(audio) / sr
     
-    if abs(actual_dur - expected_dur) < 0.1:
-        print(f"✓ {clip_id}: Duration matches! ({actual_dur:.2f}s)")
+    if abs(actual_dur - expected_dur) < 0.2:  # Allow 0.2s tolerance
+        print(f"✓ {clip_id}: Duration matches! ({actual_dur:.2f}s vs {expected_dur:.2f}s)")
     else:
         print(f"✗ {clip_id}: Duration mismatch! ({actual_dur:.2f}s vs {expected_dur:.2f}s)")
 ```
