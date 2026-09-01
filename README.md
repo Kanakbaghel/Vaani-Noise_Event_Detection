@@ -44,24 +44,42 @@ Full task/eval details are in [`reports/`](./reports).
 ```
 Vaani-Noise_Event_Detection/
 ├── configs/
-│   └── baseline.yaml          # model/training config
+│   └── baseline.yaml              # model/training config
 ├── data/
-│   ├── raw/                   # downloaded HF parquet shards (gitignored)
-│   └── processed/             # unified + split JSONL outputs (gitignored)
-├── notebooks/
-│   └── detection.ipynb        # exploratory notebook
+│   ├── raw/                       # downloaded HF parquet shards (gitignored)
+│   ├── processed/                 # unified + split JSONL outputs
+│   └── cache/
+│       └── audio_clips/           # cached audio files (gitignored)
+├── docs/                          # Documentation
+│   ├── audio_loading_guide.md     # Full technical guide for audio loading
+│   ├── AUDIO_LOADING_QUICKSTART.md # Quick start guide
+│   ├── TESTING_GUIDE.md           # Testing instructions
+│   ├── SYSTEM_STATUS.md           # Current system status
+│   ├── STABILITY_CHECK_RESULTS.md # Data stability analysis
+│   ├── SETUP_SUMMARY.md           # Setup summary
+│   └── FINAL_VERDICT.md           # Production readiness assessment
 ├── reports/
-│   └── system_description.md  # top-5 system write-up (WIP)
+│   ├── eda_*.png                  # EDA visualizations
+│   └── system_description.md      # Top-5 system write-up (WIP)
 ├── src/
-│   ├── data_prep.py           # download + unify Gold/Silver/Bronze -> unified.jsonl
-│   ├── split_data.py          # stratified train/val split
-│   ├── eda.py                 # duration/language/noise-category distribution
-│   ├── dataset.py             # PyTorch/HF Dataset wrapper (WIP)
-│   ├── train.py                # training loop (WIP)
-│   ├── infer.py                # inference -> predictions.jsonl (WIP)
-│   └── eval_local.py          # local Event-F1 + Dice scorer (WIP)
-├── submissions/                # packaged submission.zip files
-├── .env.example
+│   ├── data_prep.py               # Download + unify Gold/Silver/Bronze
+│   ├── split_data.py              # Stratified train/val split
+│   ├── eda.py                     # Duration/language/category distribution
+│   ├── audio_loader.py            # Lazy audio loading with caching ✓
+│   ├── dataset.py                 # PyTorch Dataset wrapper ✓
+│   ├── train.py                   # Training loop (WIP)
+│   ├── infer.py                   # Inference -> predictions.jsonl (WIP)
+│   └── eval_local.py              # Local Event-F1 + Dice scorer (WIP)
+├── tests/                         # Test scripts
+│   ├── verify_setup.py            # Setup verification
+│   ├── analyze_existing_data.py   # Data structure analysis
+│   ├── download_one_audio.py      # Single audio download test
+│   ├── quick_test.py              # Quick system test
+│   ├── test_audio_download.py     # Comprehensive audio test
+│   ├── check_dataset_stability.py # HF dataset stability check
+│   └── quick_stability_check.py   # Fast stability verification
+├── submissions/                   # Packaged submission.zip files
+├── .env.example                   # Environment template
 ├── .gitignore
 └── requirements.txt
 ```
@@ -98,6 +116,12 @@ Vaani-Noise_Event_Detection/
    ```
    Outputs stats to the terminal and saves plots to `reports/`.
 
+6. **Test the audio loading system:**
+   ```bash
+   python tests/verify_setup.py
+   ```
+   See [`docs/AUDIO_LOADING_QUICKSTART.md`](docs/AUDIO_LOADING_QUICKSTART.md) for usage details.
+
 ---
 
 ## Submission Format
@@ -122,8 +146,9 @@ python src/infer.py --model checkpoints/best.pt --out submissions/predictions.js
 
 - [x] Repo scaffolding
 - [x] Data download + Gold/Silver/Bronze unification (`data_prep.py`)
-- [ ] Train/val split
-- [ ] EDA
+- [x] Train/val split (`split_data.py`)
+- [x] EDA (`eda.py`)
+- [x] Lazy audio loading system with caching (`audio_loader.py`, `dataset.py`)
 - [ ] Baseline model + first submission
 - [ ] Advanced modeling
 - [ ] Local eval script
