@@ -8,11 +8,15 @@ Solves the disk space problem by:
 3. Mapping clip_id back to the original HF dataset index (verified stable/sequential)
 4. Uses .skip() for fast dataset access instead of iterating from index 0
 
-IMPORTANT: This version does NOT cast the audio column to Audio(decode=True) and
-does NOT rely on torchcodec. Letting `datasets` decode audio via its default
-soundfile-based backend avoids the "libtorchcodec / FFmpeg DLL" errors seen on
-Windows. Do not add `from datasets import Audio` + `.cast_column(...)` back in
-without confirming torchcodec/FFmpeg is properly installed on every machine.
+IMPORTANT: Newer versions of the `datasets` library default to torchcodec for
+audio decoding as soon as the audio column's schema says Audio(decode=True) --
+which is the dataset's own default, so it happens even if we never call
+.cast_column() ourselves. To avoid needing torchcodec/FFmpeg DLLs on Windows,
+we explicitly cast the audio column to Audio(decode=False) so `datasets`
+hands us raw encoded bytes instead of trying to decode anything itself, and
+we decode those bytes ourselves with `soundfile` (via BytesIO). Do not remove
+this cast or decode the audio column automatically without confirming
+torchcodec/FFmpeg is properly installed on every team member's machine.
 
 Usage:
     from src.audio_loader import AudioLoader
@@ -21,6 +25,7 @@ Usage:
     audio_array, sr = loader.load_audio("train_000042")
 """
 
+import io
 import os
 from pathlib import Path
 from typing import Tuple, Optional
@@ -28,6 +33,7 @@ from typing import Tuple, Optional
 import numpy as np
 import soundfile as sf
 import torchaudio
+from datasets import Audio
 from datasets import load_dataset
 from dotenv import load_dotenv
 from tqdm import tqdm
@@ -144,14 +150,16 @@ class AudioLoader:
         train_split = dataset["train"]
         target_index = self._extract_index_from_clip_id(clip_id)
 
+        # Force decode=False so `datasets` gives us raw encoded bytes instead
+        # of trying to decode audio itself (which would require torchcodec).
+        train_split = train_split.cast_column("audio", Audio(decode=False))
+
         if self.use_streaming:
             try:
                 skipped = train_split.skip(target_index)
                 sample = next(iter(skipped))
 
-                audio_data = sample["audio"]  # decoded automatically by datasets
-                audio_array = np.array(audio_data["array"], dtype=np.float32)
-                sr = audio_data["sampling_rate"]
+                audio_array, sr = self._decode_raw_audio(sample["audio"])
 
                 if self.target_sr is not None and sr != self.target_sr:
                     audio_array, sr = self._resample(audio_array, sr, self.target_sr)
@@ -170,14 +178,21 @@ class AudioLoader:
             # Non-streaming: dataset is fully downloaded locally first (large!).
             # Only use this path deliberately, not as a silent fallback.
             sample = train_split[target_index]
-            audio_data = sample["audio"]
-            audio_array = np.array(audio_data["array"], dtype=np.float32)
-            sr = audio_data["sampling_rate"]
+            audio_array, sr = self._decode_raw_audio(sample["audio"])
 
             if self.target_sr is not None and sr != self.target_sr:
                 audio_array, sr = self._resample(audio_array, sr, self.target_sr)
 
             return audio_array, sr
+
+    def _decode_raw_audio(self, audio_field: dict) -> Tuple[np.ndarray, int]:
+        """
+        Decode raw encoded audio bytes (from Audio(decode=False)) using
+        soundfile -- avoids any torchcodec/FFmpeg dependency entirely.
+        """
+        raw_bytes = audio_field["bytes"]
+        audio_array, sr = sf.read(io.BytesIO(raw_bytes), dtype="float32")
+        return audio_array, sr
 
     def _resample(self, audio: np.ndarray, orig_sr: int, target_sr: int) -> Tuple[np.ndarray, int]:
         import torch
