@@ -15,7 +15,7 @@ import argparse
 import os
 import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -51,7 +51,7 @@ def parse_args():
                         help="HuggingFace Wav2Vec2 encoder id")
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=2,
-                        help="Small default: Wav2Vec2 is memory-heavy on CPU")
+                        help="Small default: Wav2Vec2 is memory-heavy (keep low on 4GB GPUs)")
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--max-samples", type=int, default=100,
                         help="Max training samples (default 100 for fast iteration)")
