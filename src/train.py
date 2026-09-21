@@ -63,6 +63,8 @@ def parse_args():
                         help="Compute device ('cpu' or 'cuda')")
     parser.add_argument("--cached-first", action=argparse.BooleanOptionalAction, default=True,
                         help="Prioritize locally cached audio clips to eliminate HF streaming delays (default: True)")
+    parser.add_argument("--tier-filter", type=str, nargs="*", default=["gold", "silver"],
+                        help="Tiers to include (e.g. gold silver)")
     parser.add_argument("--num-workers", type=int, default=0,
                         help="DataLoader worker processes (default: 0 for stable CPU execution)")
     return parser.parse_args()
@@ -179,12 +181,12 @@ def train():
     print("=" * 60)
     print(f"Device: {device}")
 
-    # 1. Load Dataset (Gold + Silver only, transform=None)
+    # 1. Load Dataset (transform=None)
     dataset = VaaniNoiseDataset(
         jsonl_path=args.train_jsonl,
         cache_dir=args.cache_dir,
         target_sr=16000,
-        tier_filter=["gold", "silver"],
+        tier_filter=args.tier_filter,
         transform=None,
     )
 
