@@ -15,8 +15,9 @@ __pycache__/
 venv/
 .venv/
 
-# submissions (generated prediction artifacts)
-submissions/
+# submissions (ignore intermediate predictions, track verified final submission package)
+submissions/*
+!submissions/submission_track1_9426_gold_codabench.zip
 
 # model checkpoints (binary artifacts)
 models/

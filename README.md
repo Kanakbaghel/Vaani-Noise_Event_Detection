@@ -140,6 +140,15 @@ python src/infer.py --model checkpoints/best.pt --out submissions/predictions.js
 
 **Submission limits:** 5/day, 100 total. Track usage in the team submission log before submitting on Codabench.
 
+### Baseline Benchmark Results (Track 1)
+- **Model:** CRNN (LogMel 64, 2-layer Conv2D, 2-layer BiGRU, linear projection) trained on 9,426 Gold clips (5 epochs).
+- **Post-processing:** Threshold 0.35, Median Filter 7, Min Duration 0.15s, Merge Gap 0.10s.
+- **Validation Metrics (2,501 clips):**
+  - **Combined Score:** **0.8418**
+  - **Event F1 (Micro):** **0.2700** (Precision: 0.3070, Recall: 0.2410)
+  - **Segment Dice (Macro):** **0.5717**
+- **Codabench Submission Package:** `submissions/submission_track1_9426_gold_codabench.zip` (5,517 clips, 11,903 events).
+
 ---
 
 ## Status
@@ -149,9 +158,9 @@ python src/infer.py --model checkpoints/best.pt --out submissions/predictions.js
 - [x] Train/val split (`split_data.py`)
 - [x] EDA (`eda.py`)
 - [x] Lazy audio loading system with caching (`audio_loader.py`, `dataset.py`)
-- [ ] Baseline model + first submission
+- [x] Baseline model + first submission (`submissions/submission_track1_9426_gold_codabench.zip`)
 - [ ] Advanced modeling
-- [ ] Local eval script
+- [x] Local eval script (`src/eval_local.py`)
 - [ ] Bronze weak-supervision
 - [ ] System description report (if top-5)
 
