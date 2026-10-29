@@ -49,10 +49,10 @@ Full task/eval details are in [`reports/`](./reports).
 
 ## Environment & Hardware
 
-- **Python version:** <fill in — e.g. 3.10.x>
-- **CUDA version:** <fill in>
-- **GPU:** NVIDIA RTX 4050, 6GB VRAM
-- **OS:** <fill in — e.g. Windows 11 / Ubuntu 22.04>
+- **Python version:** 3.12.7
+- **CUDA version:** 12.4 (PyTorch 2.6.0+cu124)
+- **GPU:** NVIDIA RTX 4050 Laptop GPU, 6GB VRAM
+- **OS:** Windows 11
 - **Pretrained model dependencies:** `facebook/wav2vec2-base` (Hugging Face) — used only in the Wav2Vec2 experiment, not in the submitted CRNN model
 - **Other system dependencies:** ffmpeg (via `soundfile`/`librosa` backends), standard Python 3 build tools
 
@@ -155,7 +155,7 @@ Vaani-Noise_Event_Detection/
 ## Training
 
 ```bash
-python src/train.py --config configs/baseline.yaml
+python src/train.py --tier-filter gold --max-samples 9426 --epochs 5 --batch-size 4 --save-path checkpoints/best.pt
 ```
 CRNN trained on the Gold tier (9,426 clips), 5 epochs, Adam (lr 1e-3),
 `BCEWithLogitsLoss`. See `configs/baseline.yaml` for the full configuration
@@ -205,6 +205,8 @@ python src/eval_local_removal.py \
 | Track | Metric | Local Validation | Leaderboard |
 |---|---|---|---|
 | Track 1 — Detection (CRNN, submitted) | Combined (Event-F1 + Dice) | 0.8418 | **0.9221**, rank 51/188 |
+| Track 1 — CRNN Gold + 5k Silver (not submitted) | Combined | 0.8436 | — |
+| Track 1 — CRNN Gold + 10k Silver (not submitted) | Combined | 0.7906 | — |
 | Track 1 — Wav2Vec2 (not submitted) | Combined | 0.7408 | — |
 | Track 2 — Removal | Combined (SI-SDR + 100·ΔWER) | not completed | not submitted |
 
@@ -221,8 +223,8 @@ Full writeup: [`docs/technical_report.tex`](docs/technical_report.tex) /
 - [x] Local eval script (`eval_local.py`)
 - [x] Wav2Vec2 experiment (0.7408 val, below CRNN — documented, not submitted)
 - [x] Technical report (3-page IEEE format)
-- [ ] Final checkpoint committed to repo (`checkpoints/best.pt`) — pending
-- [ ] CRNN retrain with Silver tier + post-processing sweep
+- [x] Final checkpoint committed to repo (`checkpoints/best.pt`)
+- [x] CRNN retrain with Silver tier: +5k Silver 0.8436 local (marginal gain), +10k Silver 0.7906 (worse) — Gold-only checkpoint kept as final
 - [ ] Bronze weak-supervision (designed, not run to completion)
 
 **Track 2 — Removal**
