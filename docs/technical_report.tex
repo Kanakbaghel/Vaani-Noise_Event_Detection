@@ -1,0 +1,148 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{booktabs}
+
+\begin{document}
+
+\title{Noise Event Detection in Real-World Indic Speech:\\Team Deadlock — Track 1 (Datathon@IndoML 2026)}
+
+\author{
+\IEEEauthorblockN{Kanak Baghel, Shubham Warkade, Ankit Kushwaha, Rithish K}
+\IEEEauthorblockA{Team Deadlock, Datathon@IndoML 2026}
+}
+
+\maketitle
+
+\begin{abstract}
+We present Team Deadlock's system for Track 1 (Noise Event Detection) of
+Datathon@IndoML 2026, which asks participants to localize non-stationary
+background noise events -- vehicle horns, dogs barking, doorbells, kitchen
+appliances -- in real-world Indic speech, with precise onset/offset
+timestamps. Our primary system is a compact convolutional-recurrent neural
+network (CRNN) trained on log-mel spectrogram features from the Gold tier of
+the Vaani-Noise-Event-Dataset. We additionally explored a Wav2Vec2-based
+detector and designed (but did not complete in time) a weak-supervision
+scheme to exploit the untimestamped Bronze tier. Our CRNN submission scores
+0.9221 (Combined Event-F1 + Segment-Dice) on the public leaderboard, ranked
+51/188 as of the final submission.
+\end{abstract}
+
+\section{Introduction}
+Speech recordings collected in real Indian environments are dominated by
+bursty, non-stationary background events -- a passing motorbike, a hen, a
+doorbell, devotional music -- that degrade downstream Automatic Speech
+Recognition (ASR), and that standard sound-event-detection benchmarks
+(AudioSet, DESED, DCASE) under-represent. Track 1 of Datathon@IndoML 2026
+asks participants to detect such events in the Vaani corpus, a large-scale,
+multi-language Indian speech dataset, and output their onset/offset
+timestamps. We treat this as a frame-level binary detection problem: predict
+a per-frame noise-presence probability and decode it into discrete events.
+
+\section{Training Data and Preprocessing}
+The organizers provide $\sim$150 hours of training audio at three annotation
+quality tiers: \textbf{Gold} ($\sim$20h, 9{,}426 clips, mutually verified
+onset/offset timestamps), \textbf{Silver} ($\sim$100h, timestamps present but
+unverified), and \textbf{Bronze} ($\sim$30h, only clip-level noise tags, no
+timestamps).
+
+Our primary (submitted) model was trained on the \textbf{Gold tier only}
+(9{,}426 clips), held out 2{,}501 clips for local validation. Audio is
+resampled to 16\,kHz mono and converted to a 64-band log-mel spectrogram
+(1024-point FFT, 512-sample hop, $\approx$32ms frames at this hop/SR). No
+data augmentation was applied to the submitted model. No external datasets
+were used -- only the organizer-provided Vaani corpus.
+
+We also designed (but did not complete a full run of) a weak-supervision
+scheme for the Bronze tier: the trained CRNN is run over every Bronze clip,
+and a clip is accepted as a pseudo-labeled training example only when the
+model's own prediction agrees with the clip-level tag (noise tag present and
+the model confidently predicts at least one event, mean positive-frame
+probability $\geq 0.6$; or no tag and no predicted event). Disagreements are
+discarded. This is implemented in \texttt{src/bronze\_weak\_supervision.py}
+but was not run to completion before the deadline.
+
+\section{Proposed Method}
+
+\subsection{Architecture — CRNN (submitted model)}
+The submitted model is a small convolutional-recurrent network:
+\begin{itemize}
+    \item \textbf{Input:} 64-band log-mel spectrogram.
+    \item \textbf{CNN backbone:} two Conv2D blocks (16 $\to$ 32 channels,
+          $3\times3$ kernels, batch normalization, ReLU, frequency-axis max
+          pooling).
+    \item \textbf{Temporal modeling:} single-layer bidirectional LSTM
+          (hidden size 64) over the CNN's frame sequence.
+    \item \textbf{Head:} a linear layer producing one logit per frame,
+          passed through a sigmoid to obtain a noise-presence probability.
+\end{itemize}
+
+\subsection{Event Decoding}
+Frame-level probabilities are converted to discrete onset/offset events via:
+probability threshold (0.35) $\rightarrow$ temporal median filter (window 7,
+to remove isolated spurious frames) $\rightarrow$ minimum-duration filter
+(0.15s) $\rightarrow$ merge-gap filter (0.10s, to join adjacent detections
+into single events).
+
+\subsection{Training}
+Optimizer: Adam, learning rate $1\times10^{-3}$, loss:
+\texttt{BCEWithLogitsLoss} on per-frame binary noise targets, trained for 5
+epochs on the 9{,}426-clip Gold split. Hardware: NVIDIA RTX 4050 (6GB VRAM).
+
+\subsection{Alternative: Wav2Vec2-based detector (not submitted)}
+We also fine-tuned a detector built on a frozen \texttt{facebook/wav2vec2-base}
+encoder (Hugging Face) with a BiGRU head over its native $\sim$50fps frame
+rate, trained with \texttt{BCEWithLogitsLoss} using a \texttt{pos\_weight}
+computed from the frame-level class imbalance (an earlier run without this
+weighting collapsed to near-constant predictions). On a 5{,}000-clip Gold
+subset this scored Combined 0.7408 (Event-F1 0.1811, Dice 0.5597) --
+below the CRNN's 0.8418 local-validation score -- so it was kept as a
+documented experiment rather than submitted. Code:
+\texttt{src/advanced\_model.py}, \texttt{src/train\_advanced.py}.
+
+\section{Results and Conclusion}
+
+\begin{table}[h]
+\centering
+\caption{Track 1 Results}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{Split} & \textbf{Combined} \\
+\midrule
+CRNN (Gold-only, submitted) & Local val (2,501 clips) & 0.8418 \\
+CRNN (Gold-only, submitted) & Leaderboard (public, 11h) & \textbf{0.9221} \\
+Wav2Vec2 + BiGRU (5k Gold) & Local val & 0.7408 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Our CRNN submission achieved a public leaderboard Combined score of
+\textbf{0.9221} (Event-F1 0.3014, Segment Dice 0.6206), placing
+\textbf{51st of 188} participating teams. The leaderboard score exceeds our
+local validation estimate, which we attribute to differences between our
+held-out validation split and the organizers' withheld evaluation
+distribution. The Wav2Vec2 alternative underperformed the CRNN baseline at
+the data scale we were able to train it at, likely due to the small
+clip-level batch size our 6GB-VRAM hardware budget allowed; a full
+9{,}426-clip run was planned but not completed before the deadline.
+
+\subsection{Limitations and Future Work}
+Our submission uses only the Gold tier; a CRNN retrain incorporating the
+larger but noisier Silver tier, and completion of the Bronze-tier
+weak-supervision pipeline described in Section II, are the most direct paths
+to improvement and were designed but not finished in time. A full-scale
+Wav2Vec2 run and a CRNN/Wav2Vec2 ensemble are natural next steps.
+
+\section*{References}
+\begin{thebibliography}{9}
+\bibitem{vaani} ARTPARK-IISc, ``Vaani Corpus,'' \url{https://arxiv.org/abs/2603.28714}.
+\bibitem{dataset} ARTPARK-IISc, ``Vaani-Noise-Event-Dataset,'' Hugging Face,
+\url{https://huggingface.co/datasets/ARTPARK-IISc/Vaani-Noise-Event-Dataset}.
+\bibitem{wav2vec2} A. Baevski, H. Zhou, A. Mohamed, M. Auli, ``wav2vec 2.0:
+A Framework for Self-Supervised Learning of Speech Representations,''
+\url{https://huggingface.co/facebook/wav2vec2-base}.
+\end{thebibliography}
+
+\end{document}
