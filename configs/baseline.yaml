@@ -1,0 +1,35 @@
+# CRNN baseline config — matches src/train.py defaults as of Oct 2026 run
+# and docs/system_description_draft.md Section 2.2.
+
+data:
+  train_jsonl: data/processed/train_split.jsonl
+  cache_dir: data/cache/audio_clips
+  tier_filter: ["gold", "silver"]   # <-- confirm with Shubham which tiers the FINAL checkpoint was trained on
+
+audio:
+  sample_rate: 16000
+  n_mels: 64
+  n_fft: 1024
+  hop_length: 512
+
+model:
+  type: CRNNNoiseDetector
+  cnn_channels: [16, 32]
+  lstm_hidden: 64
+  lstm_layers: 1
+  dropout: 0.1
+
+training:
+  epochs: 5          # <-- CONFIRM: train.py default is 5, but confirm actual value Shubham used
+  batch_size: 4       # <-- CONFIRM with Shubham
+  learning_rate: 0.001
+  optimizer: Adam
+  loss: BCEWithLogitsLoss
+  device: cuda         # <-- CONFIRM GPU used; train.py default is "cpu"
+  save_path: checkpoints/best.pt
+
+decoding:
+  threshold: 0.35
+  median_filter_window: 7
+  min_duration_sec: 0.15
+  merge_gap_sec: 0.10
