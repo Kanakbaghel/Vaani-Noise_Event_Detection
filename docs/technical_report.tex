@@ -89,7 +89,9 @@ into single events).
 \subsection{Training}
 Optimizer: Adam, learning rate $1\times10^{-3}$, loss:
 \texttt{BCEWithLogitsLoss} on per-frame binary noise targets, trained for 5
-epochs on the 9{,}426-clip Gold split. Hardware: NVIDIA RTX 4050 (6GB VRAM).
+epochs with batch size 4 on the 9{,}426-clip Gold split. Environment: NVIDIA
+RTX 4050 Laptop GPU (6GB VRAM), Python 3.12.7, PyTorch 2.6.0 (CUDA 12.4),
+Windows 11.
 
 \subsection{Alternative: Wav2Vec2-based detector (not submitted)}
 We also fine-tuned a detector built on a frozen \texttt{facebook/wav2vec2-base}
@@ -113,6 +115,8 @@ documented experiment rather than submitted. Code:
 \midrule
 CRNN (Gold-only, submitted) & Local val (2,501 clips) & 0.8418 \\
 CRNN (Gold-only, submitted) & Leaderboard (public, 11h) & \textbf{0.9221} \\
+CRNN (Gold + 5k Silver) & Local val & 0.8436 \\
+CRNN (Gold + 10k Silver) & Local val & 0.7906 \\
 Wav2Vec2 + BiGRU (5k Gold) & Local val & 0.7408 \\
 \bottomrule
 \end{tabular}
@@ -129,10 +133,12 @@ clip-level batch size our 6GB-VRAM hardware budget allowed; a full
 9{,}426-clip run was planned but not completed before the deadline.
 
 \subsection{Limitations and Future Work}
-Our submission uses only the Gold tier; a CRNN retrain incorporating the
-larger but noisier Silver tier, and completion of the Bronze-tier
-weak-supervision pipeline described in Section II, are the most direct paths
-to improvement and were designed but not finished in time. A full-scale
+Our submission uses only the Gold tier. Adding 5k Silver clips gave a marginal
+local gain (0.8436 vs.\ 0.8418) while 10k Silver clips hurt (0.7906),
+suggesting the unverified Silver timestamps need filtering or noise-robust
+training; we did not submit these variants. Completing the Bronze-tier
+weak-supervision pipeline described in Section II is another direct path to
+improvement that was designed but not finished in time. A full-scale
 Wav2Vec2 run and a CRNN/Wav2Vec2 ensemble are natural next steps.
 
 \section*{References}
