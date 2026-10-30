@@ -1,0 +1,8 @@
+# Track 2 inference-only environment (enhance + SraVaani transcription + packaging)
+torch>=2.0.0
+numpy>=1.24.0
+soundfile>=0.12.0
+librosa>=0.10.0
+huggingface_hub>=0.24.0
+transformers>=4.40.0
+tqdm>=4.66.0
